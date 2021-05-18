@@ -100,7 +100,7 @@ func main() {
 		}
 		targets := strings.Split(strings.Join(data, " "), "\n")
 		for _, target := range targets {
-			go addTargetToProject(target)
+			addTargetToProject(target)
 		}
 	}
 
