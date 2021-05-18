@@ -1,17 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"crypto/tls"
 	"flag"
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/joho/godotenv"
 	"github.com/tidwall/gjson"
-	"golang.org/x/crypto/ssh/terminal"
-	"io/ioutil"
 	"log"
 	"os"
-	"strings"
 )
 
 var (
@@ -91,17 +89,9 @@ func main() {
 	if pid == "" {
 		listProjects()
 	} else {
-		data := flag.Args()
-		if !terminal.IsTerminal(0) {
-			b, err := ioutil.ReadAll(os.Stdin)
-			if err == nil {
-				data = append(data, string(b))
-			}
-		}
-		targets := strings.Split(strings.Join(data, " "), "\n")
-		for _, target := range targets {
-			addTargetToProject(target)
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			addTargetToProject(scanner.Text())
 		}
 	}
-
 }
