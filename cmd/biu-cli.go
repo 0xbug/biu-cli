@@ -202,9 +202,8 @@ func main() {
 	flag.StringVar(&ip, "ip", "", "biu search ip")
 	flag.BoolVar(&isSearch, "s", false, "biu 搜索模式")
 	flag.IntVar(&pageSize, "l", 20, "pageSize")
-	initEnv()
 	flag.Parse()
-
+	initEnv()
 	if isSearch {
 		scanner := bufio.NewScanner(os.Stdin)
 		for scanner.Scan() {
