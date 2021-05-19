@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	isSearch        bool
+	isSearch bool
 	biu      string
 	ak       string
 	pnew     string
@@ -22,6 +22,7 @@ var (
 	ip       string
 	pageSize int
 	client   = resty.New()
+	version = "v0.3"
 )
 
 func biuPrint(header []string, data [][]string) {
@@ -43,11 +44,16 @@ func biuPrint(header []string, data [][]string) {
 	table.Render()
 }
 
+func biuClient() *resty.Request {
+
+	return client.R().SetHeader("Biu-Api-Key", ak).SetHeader("User-Agent", fmt.Sprintf("biu-cli %s", version))
+
+}
+
 func addTargetToProject(target string) {
 	if target != "" {
-		resp, err := client.R().
+		resp, err := biuClient().
 			SetHeader("Content-Type", "application/json").
-			SetHeader("Biu-Api-Key", ak).
 			SetBody(`{"asset": "` + target + `" }`).
 			Patch(fmt.Sprintf("%s/api/project/optimize?project_id=%s", biu, pid))
 		if err != nil {
@@ -60,8 +66,7 @@ func addTargetToProject(target string) {
 	}
 }
 func listProjects() {
-	resp, err := client.R().
-		SetHeader("Biu-Api-Key", ak).
+	resp, err := biuClient().
 		Get(fmt.Sprintf("%s/api/project?limit=%d&from=1&public=false", biu, pageSize))
 	if err != nil {
 		fmt.Print(err)
@@ -76,8 +81,7 @@ func listProjects() {
 	}
 }
 func addProject() {
-	resp, err := client.R().
-		SetHeader("Biu-Api-Key", ak).
+	resp, err := biuClient().
 		SetHeader("Content-Type", "application/json").
 		SetBody(`{"asset":"","name":"` + pnew + `","ports":"21-22,80,443,1433,2181,2409,3306,3389,5601,6379,8009,8080,8443,8888,9200,27017","public":false,"scan":true,"organizations":[],"include_subdomain":true,"include_ip":true,"include_history":true,"period":0,"tags":[],"cover":null}`).
 		Post(fmt.Sprintf("%s/api/project", biu))
@@ -94,8 +98,7 @@ func addProject() {
 
 func searchIP(ipaddr string) {
 	fmt.Println(ipaddr)
-	resp, err := client.R().
-		SetHeader("Biu-Api-Key", ak).
+	resp, err := biuClient().
 		Get(fmt.Sprintf("%s/api/asset/search?target=%s", biu, ipaddr))
 	if err != nil {
 		fmt.Print(err)
@@ -159,7 +162,7 @@ func searchIP(ipaddr string) {
 			}
 			biuPrint(header, rows)
 		}
-	fmt.Println("---------------------------------------------------")
+		fmt.Println("---------------------------------------------------")
 	}
 }
 
