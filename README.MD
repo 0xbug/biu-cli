@@ -12,16 +12,20 @@ biu-cli -ak API密钥 -host biu地址(https://x.x.x.x)
 ```
 
 ## 使用
- - 查询单个IP
+ - 查询IP
 ```shell
-biu-cli -ip 117.78.24.37
+biu-cli -ip 1.1.1.1
+biu-cli -ip 1.1.1.1/24
 ```
 
- - 查询多个IP
+ - 查询多个IP或域名
 ```shell
 cat ip.txt|biu-cli -s
 ```
-
+ - 进入查询模式
+```shell
+biu-cli -s
+```
  - 查看已有项目
 ```shell
 biu-cli

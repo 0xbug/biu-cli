@@ -8,9 +8,11 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/joho/godotenv"
 	"github.com/olekukonko/tablewriter"
+	"github.com/projectdiscovery/mapcidr"
 	"github.com/tidwall/gjson"
 	"log"
 	"os"
+	"strings"
 )
 
 var (
@@ -22,7 +24,7 @@ var (
 	ip       string
 	pageSize int
 	client   = resty.New()
-	version = "v0.3"
+	version  = "v0.3"
 )
 
 func biuPrint(header []string, data [][]string) {
@@ -117,7 +119,7 @@ func searchIP(ipaddr string) {
 		header := []string{}
 		rows := make([][]string, 0, 0)
 		if len(ports.Array()) != 0 {
-			header = []string{"端口", "服务", "标题", "指纹", "URL"}
+			header = []string{"端口", "ip", "服务", "域名", "标题", "指纹", "URL", "证书"}
 			rows = make([][]string, 0, len(ports.Array()))
 			for _, service := range ports.Array() {
 				t := ""
@@ -131,7 +133,7 @@ func searchIP(ipaddr string) {
 					}
 				}
 
-				rows = append(rows, []string{service.Get("port").String(), service.Get("service").Str, service.Get("title").Str, t, service.Get("url").Str})
+				rows = append(rows, []string{service.Get("port").String(), service.Get("ip").String(), service.Get("service").Str, service.Get("tag").Str, service.Get("title").Str, t, service.Get("url").Str, service.Get("organization").Str})
 			}
 			biuPrint(header, rows)
 		}
@@ -145,7 +147,7 @@ func searchIP(ipaddr string) {
 			biuPrint(header, rows)
 		}
 		if len(hosts.Array()) != 0 {
-			header = []string{"根域名", "域名", "标题", "指纹", "URL"}
+			header = []string{"根域名", "域名", "ip", "标题", "指纹", "URL"}
 			rows = make([][]string, 0, len(hosts.Array()))
 			for _, host := range hosts.Array() {
 				t := ""
@@ -158,11 +160,11 @@ func searchIP(ipaddr string) {
 
 					}
 				}
-				rows = append(rows, []string{host.Get("domain").Str, host.Get("host").Str, host.Get("title").Str, t, host.Get("url").Str})
+				rows = append(rows, []string{host.Get("domain").Str, host.Get("host").Str, host.Get("ip").String(), host.Get("title").Str, t, host.Get("url").Str})
 			}
 			biuPrint(header, rows)
 		}
-		fmt.Println("---------------------------------------------------")
+		fmt.Println("------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------")
 	}
 }
 
@@ -209,7 +211,14 @@ func main() {
 			searchIP(scanner.Text())
 		}
 	} else if ip != "" {
-		searchIP(ip)
+		if !strings.Contains(ip, "/") {
+			ip = fmt.Sprintf("%s/32", ip)
+		}
+		ips, _ := mapcidr.IPAddresses(ip)
+		for _, addr := range ips {
+			searchIP(addr)
+		}
+
 	} else {
 		flag.Parse()
 		if pid == "" {
