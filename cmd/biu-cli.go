@@ -7,18 +7,41 @@ import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/joho/godotenv"
+	"github.com/olekukonko/tablewriter"
 	"github.com/tidwall/gjson"
 	"log"
 	"os"
 )
 
 var (
+	isSearch        bool
 	biu      string
 	ak       string
+	pnew     string
 	pid      string
+	ip       string
 	pageSize int
 	client   = resty.New()
 )
+
+func biuPrint(header []string, data [][]string) {
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
+	table.SetAutoWrapText(false)
+	table.SetAutoFormatHeaders(true)
+	table.SetCenterSeparator("")
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
+	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
+	table.SetColumnSeparator("")
+	table.SetRowSeparator("")
+	table.SetHeaderLine(false)
+	table.SetBorder(false)
+	table.SetTablePadding("\t")
+	table.SetNoWhiteSpace(true)
+	table.AppendBulk(data)
+	table.Render()
+}
 
 func addTargetToProject(target string) {
 	if target != "" {
@@ -52,6 +75,93 @@ func listProjects() {
 
 	}
 }
+func addProject() {
+	resp, err := client.R().
+		SetHeader("Biu-Api-Key", ak).
+		SetHeader("Content-Type", "application/json").
+		SetBody(`{"asset":"","name":"` + pnew + `","ports":"21-22,80,443,1433,2181,2409,3306,3389,5601,6379,8009,8080,8443,8888,9200,27017","public":false,"scan":true,"organizations":[],"include_subdomain":true,"include_ip":true,"include_history":true,"period":0,"tags":[],"cover":null}`).
+		Post(fmt.Sprintf("%s/api/project", biu))
+	if err != nil {
+		fmt.Print(err)
+	}
+	if resp.StatusCode() == 200 {
+		result := gjson.Get(string(resp.Body()), "result")
+		msg := gjson.Get(string(resp.Body()), "msg").Value()
+		fmt.Println(msg)
+		fmt.Println(result.Get("project_id").Value())
+	}
+}
+
+func searchIP(ipaddr string) {
+	fmt.Println(ipaddr)
+	resp, err := client.R().
+		SetHeader("Biu-Api-Key", ak).
+		Get(fmt.Sprintf("%s/api/asset/search?target=%s", biu, ipaddr))
+	if err != nil {
+		fmt.Print(err)
+	}
+	if resp.StatusCode() == 200 {
+		result := gjson.Get(string(resp.Body()), "result")
+		ports := result.Get("ports")
+		tags := result.Get("tags")
+		hosts := result.Get("hosts")
+		vulnerabilities := result.Get("vulnerabilities")
+		if len(tags.Array()) != 0 {
+			for _, tag := range tags.Array() {
+				fmt.Println(tag)
+			}
+		}
+		header := []string{}
+		rows := make([][]string, 0, 0)
+		if len(ports.Array()) != 0 {
+			header = []string{"端口", "服务", "标题", "指纹", "URL"}
+			rows = make([][]string, 0, len(ports.Array()))
+			for _, service := range ports.Array() {
+				t := ""
+				for _, tag := range service.Get("tags").Array() {
+					if t != "" {
+						t = fmt.Sprintf("%s,%s", t, tag.String())
+
+					} else {
+						t = fmt.Sprintf(tag.String())
+
+					}
+				}
+
+				rows = append(rows, []string{service.Get("port").String(), service.Get("service").Str, service.Get("title").Str, t, service.Get("url").Str})
+			}
+			biuPrint(header, rows)
+		}
+
+		if len(vulnerabilities.Array()) != 0 {
+			header = []string{"风险等级", "插件", "目标"}
+			rows = make([][]string, 0, len(vulnerabilities.Array()))
+			for _, vulnerability := range vulnerabilities.Array() {
+				rows = append(rows, []string{vulnerability.Get("severity").Str, vulnerability.Get("plugin").Str, vulnerability.Get("target").Str})
+			}
+			biuPrint(header, rows)
+		}
+		if len(hosts.Array()) != 0 {
+			header = []string{"根域名", "域名", "标题", "指纹", "URL"}
+			rows = make([][]string, 0, len(hosts.Array()))
+			for _, host := range hosts.Array() {
+				t := ""
+				for _, tag := range host.Get("tags").Array() {
+					if t != "" {
+						t = fmt.Sprintf("%s,%s", t, tag.String())
+
+					} else {
+						t = fmt.Sprintf(tag.String())
+
+					}
+				}
+				rows = append(rows, []string{host.Get("domain").Str, host.Get("host").Str, host.Get("title").Str, t, host.Get("url").Str})
+			}
+			biuPrint(header, rows)
+		}
+	fmt.Println("---------------------------------------------------")
+	}
+}
 
 func initEnv() {
 	homeDir, _ := os.UserHomeDir()
@@ -82,16 +192,35 @@ func main() {
 	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	flag.StringVar(&ak, "ak", "", "biu api key")
 	flag.StringVar(&biu, "host", "", "biu host url: https://x.x.x.x")
+	flag.StringVar(&pnew, "pnew", "", "biu new project name")
 	flag.StringVar(&pid, "pid", "", "biu project id")
+	flag.StringVar(&ip, "ip", "", "biu search ip")
+	flag.BoolVar(&isSearch, "s", false, "biu 搜索模式")
 	flag.IntVar(&pageSize, "l", 20, "pageSize")
-	flag.Parse()
 	initEnv()
-	if pid == "" {
-		listProjects()
-	} else {
+	flag.Parse()
+
+	if isSearch {
 		scanner := bufio.NewScanner(os.Stdin)
 		for scanner.Scan() {
-			addTargetToProject(scanner.Text())
+			searchIP(scanner.Text())
+		}
+	} else if ip != "" {
+		searchIP(ip)
+	} else {
+		flag.Parse()
+		if pid == "" {
+			if pnew == "" {
+				listProjects()
+			} else {
+				addProject()
+			}
+		} else {
+			scanner := bufio.NewScanner(os.Stdin)
+			for scanner.Scan() {
+				addTargetToProject(scanner.Text())
+			}
 		}
 	}
+
 }

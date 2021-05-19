@@ -9,13 +9,26 @@ go build -o biu-cli cmd/biu-cli.go
 
 ```shell
 biu-cli -ak API密钥 -host biu地址(https://x.x.x.x)
-
 ```
 
 ## 使用
+ - 查询单个IP
+```shell
+biu-cli -ip 117.78.24.37
+```
+
+ - 查询多个IP
+```shell
+cat ip.txt|biu-cli -s
+```
+
  - 查看已有项目
 ```shell
 biu-cli
+```
+ - 创建项目
+```shell
+biu-cli -pnew 项目名称
 ```
  - 添加目标到已有项目中
 ```shell
