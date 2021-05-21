@@ -12,6 +12,7 @@ import (
 	"github.com/tidwall/gjson"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -21,6 +22,7 @@ var (
 	ak       string
 	pnew     string
 	pid      string
+	icp      string
 	ip       string
 	pageSize int
 	client   = resty.New()
@@ -50,6 +52,22 @@ func biuClient() *resty.Request {
 
 	return client.R().SetHeader("Biu-Api-Key", ak).SetHeader("User-Agent", fmt.Sprintf("biu-cli %s", version))
 
+}
+
+func icpSearch() {
+	resp, err := client.R().Get(fmt.Sprintf("https://beian.tianyancha.com/search/%s", icp))
+	if err != nil {
+		fmt.Print(err)
+	}
+	if resp.StatusCode() == 200 {
+		reg, err := regexp.Compile(`<span class="ranking-ym" rel="nofollow">([a-z0-9-\.]+)`)
+		if err == nil {
+			match := reg.FindAllString(resp.String(), -1)
+			for _, domain := range match {
+				fmt.Println(strings.Split(domain, ">")[1])
+			}
+		}
+	}
 }
 
 func addTargetToProject(target string) {
@@ -199,6 +217,7 @@ func main() {
 	flag.StringVar(&biu, "host", "", "biu host url: https://x.x.x.x")
 	flag.StringVar(&pnew, "pnew", "", "biu new project name")
 	flag.StringVar(&pid, "pid", "", "biu project id")
+	flag.StringVar(&icp, "icp", "", "备案名称查询域名")
 	flag.StringVar(&ip, "ip", "", "biu search ip")
 	flag.BoolVar(&isSearch, "s", false, "biu 搜索模式")
 	flag.IntVar(&pageSize, "l", 20, "pageSize")
@@ -218,8 +237,9 @@ func main() {
 			searchIP(addr)
 		}
 
+	} else if icp != "" {
+		icpSearch()
 	} else {
-		flag.Parse()
 		if pid == "" {
 			if pnew == "" {
 				listProjects()

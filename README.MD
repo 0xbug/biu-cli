@@ -40,6 +40,11 @@ cat ip.txt|biu-cli -pid 项目ID
 cat domain.txt|biu-cli -pid 项目ID
 ```
 
+- 查询备案并添加到已有项目中
+```shell
+biu-cli -icp xx公司|biu-cli -pid 项目ID
+```
+
  - 配合https://opendata.rapid7.com/sonar.https/使用
 
 ```shell
