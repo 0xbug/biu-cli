@@ -26,7 +26,7 @@ var (
 	ip       string
 	pageSize int
 	client   = resty.New()
-	version  = "v0.3"
+	version  = "v0.4"
 )
 
 func biuPrint(header []string, data [][]string) {
