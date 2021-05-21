@@ -26,7 +26,7 @@ var (
 	ip       string
 	pageSize int
 	client   = resty.New()
-	version  = "v0.4"
+	version  = "v0.5"
 )
 
 func biuPrint(header []string, data [][]string) {
@@ -63,9 +63,19 @@ func icpSearch() {
 		reg, err := regexp.Compile(`<span class="ranking-ym" rel="nofollow">([a-z0-9-\.]+)`)
 		if err == nil {
 			match := reg.FindAllString(resp.String(), -1)
-			for _, domain := range match {
-				fmt.Println(strings.Split(domain, ">")[1])
+			if len(match) > 0 {
+				if pnew != "" {
+					addProject()
+				}
+				for _, domain := range match {
+					if pid != "" {
+						addTargetToProject(strings.Split(domain, ">")[1])
+					} else {
+						fmt.Println(strings.Split(domain, ">")[1])
+					}
+				}
 			}
+
 		}
 	}
 }
@@ -113,6 +123,7 @@ func addProject() {
 		msg := gjson.Get(string(resp.Body()), "msg").Value()
 		fmt.Println(msg)
 		fmt.Println(result.Get("project_id").Value())
+		pid = result.Get("project_id").Str
 	}
 }
 
