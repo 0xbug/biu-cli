@@ -10,6 +10,14 @@ go build -o biu-cli cmd/biu-cli.go
 ```shell
 biu-cli -ak API密钥 -host biu地址(https://x.x.x.x)
 ```
+## 进阶配置
+
+```shell
+BIU_AK="API密钥"
+BIU_HOST="biu地址"
+BIU_PORTS="新建项目使用的端口范围"
+TYC_COOKIE="查询icp时用到天眼查的Cookie"
+```
 
 ## 使用
  - 查询IP

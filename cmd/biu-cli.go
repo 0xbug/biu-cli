@@ -17,16 +17,19 @@ import (
 )
 
 var (
-	isSearch bool
-	biu      string
-	ak       string
-	pnew     string
-	pid      string
-	icp      string
-	ip       string
-	pageSize int
-	client   = resty.New()
-	version  = "v0.5"
+	isSearch    bool
+	tycCookie   string
+	portsRanges = "21-22,80,443,1433,2181,2409,3306,3389,5601,6379,8009,8080,8443,8888,9200,27017"
+	biuHost     string
+	ak          string
+	pnew        string
+	pid         string
+	icp         string
+	ip          string
+	verbose     bool
+	pageSize    int
+	client      = resty.New()
+	version     = "v0.6"
 )
 
 func biuPrint(header []string, data [][]string) {
@@ -54,13 +57,13 @@ func biuClient() *resty.Request {
 
 }
 
-func icpSearch() {
-	resp, err := client.R().Get(fmt.Sprintf("https://beian.tianyancha.com/search/%s", icp))
+func icpSearch(page int) {
+	resp, err := client.R().SetHeader("Cookie", tycCookie).Get(fmt.Sprintf("https://beian.tianyancha.com/search/%s/p%d", icp, page))
 	if err != nil {
 		fmt.Print(err)
 	}
 	if resp.StatusCode() == 200 {
-		reg, err := regexp.Compile(`<span class="ranking-ym" rel="nofollow">([a-z0-9-\.]+)`)
+		reg, err := regexp.Compile(`<span class="ranking-ym" rel="nofollow">([a-z0-9-\.]+\.[a-z]+)`)
 		if err == nil {
 			match := reg.FindAllString(resp.String(), -1)
 			if len(match) > 0 {
@@ -75,6 +78,10 @@ func icpSearch() {
 					}
 				}
 			}
+			if strings.Contains(resp.String(), fmt.Sprintf("https://beian.tianyancha.com/search/%s/p%d", icp, page+1)) {
+				page = page + 1
+				icpSearch(page)
+			}
 
 		}
 	}
@@ -85,7 +92,7 @@ func addTargetToProject(target string) {
 		resp, err := biuClient().
 			SetHeader("Content-Type", "application/json").
 			SetBody(`{"asset": "` + target + `" }`).
-			Patch(fmt.Sprintf("%s/api/project/optimize?project_id=%s", biu, pid))
+			Patch(fmt.Sprintf("%s/api/project/optimize?project_id=%s", biuHost, pid))
 		if err != nil {
 			fmt.Print(err)
 		}
@@ -97,11 +104,14 @@ func addTargetToProject(target string) {
 }
 func listProjects() {
 	resp, err := biuClient().
-		Get(fmt.Sprintf("%s/api/project?limit=%d&from=1&public=false", biu, pageSize))
+		Get(fmt.Sprintf("%s/api/project?limit=%d&from=1&public=false", biuHost, pageSize))
 	if err != nil {
 		fmt.Print(err)
 	}
 	if resp.StatusCode() == 200 {
+		if verbose {
+			fmt.Println(fmt.Sprintf("%s/project", biuHost))
+		}
 		fmt.Println(fmt.Sprintf("编号\t项目ID                            \t名称"))
 		value := gjson.Get(string(resp.Body()), "result")
 		for index, result := range value.Array() {
@@ -111,26 +121,31 @@ func listProjects() {
 	}
 }
 func addProject() {
-	resp, err := biuClient().
-		SetHeader("Content-Type", "application/json").
-		SetBody(`{"asset":"","name":"` + pnew + `","ports":"21-22,80,443,1433,2181,2409,3306,3389,5601,6379,8009,8080,8443,8888,9200,27017","public":false,"scan":true,"organizations":[],"include_subdomain":true,"include_ip":true,"include_history":true,"period":0,"tags":[],"cover":null}`).
-		Post(fmt.Sprintf("%s/api/project", biu))
-	if err != nil {
-		fmt.Print(err)
-	}
-	if resp.StatusCode() == 200 {
-		result := gjson.Get(string(resp.Body()), "result")
-		msg := gjson.Get(string(resp.Body()), "msg").Value()
-		fmt.Println(msg)
-		fmt.Println(result.Get("project_id").Value())
-		pid = result.Get("project_id").Str
+	if pid == "" {
+		resp, err := biuClient().
+			SetHeader("Content-Type", "application/json").
+			SetBody(`{"asset":"","name":"` + pnew + `","ports":"` + portsRanges + `","public":false,"scan":true,"organizations":[],"include_subdomain":true,"include_ip":true,"include_history":true,"period":0,"tags":[],"cover":null}`).
+			Post(fmt.Sprintf("%s/api/project", biuHost))
+		if err != nil {
+			fmt.Print(err)
+		}
+		if resp.StatusCode() == 200 {
+			result := gjson.Get(string(resp.Body()), "result")
+			msg := gjson.Get(string(resp.Body()), "msg").Value()
+			fmt.Println(msg)
+			fmt.Println(result.Get("project_id").Value())
+			pid = result.Get("project_id").Str
+			if verbose {
+				fmt.Println(fmt.Sprintf("%s/assets/port?project_id=%s", biuHost, pid))
+			}
+		}
 	}
 }
 
 func searchIP(ipaddr string) {
 	fmt.Println(ipaddr)
 	resp, err := biuClient().
-		Get(fmt.Sprintf("%s/api/asset/search?target=%s", biu, ipaddr))
+		Get(fmt.Sprintf("%s/api/asset/search?target=%s", biuHost, ipaddr))
 	if err != nil {
 		fmt.Print(err)
 	}
@@ -202,22 +217,26 @@ func initEnv() {
 	envPath := fmt.Sprintf("%s/.biu.env", homeDir)
 	err := godotenv.Load(fmt.Sprintf(envPath))
 	if err != nil {
-		if ak != "" && biu != "" {
+		if ak != "" && biuHost != "" {
 			var DefaultServerOptions = map[string]string{
 				"BIU_AK":   ak,
-				"BIU_HOST": biu,
+				"BIU_HOST": biuHost,
+				"BIU_PORTS": portsRanges,
+				"TYC_COOKIE": tycCookie,
 			}
 			err := godotenv.Write(DefaultServerOptions, envPath)
 			if err != nil {
 				fmt.Println("配置初始化成功")
 			}
 		} else {
-			log.Fatal("请初始化配置: biu-cli -ak xxx -host https://x.x.x.x")
+			log.Fatal(fmt.Sprintf("请初始化配置: biu-cli -ak xxx -host https://x.x.x.x \n文件路径: %s", envPath))
 
 		}
 	} else {
 		ak = os.Getenv("BIU_AK")
-		biu = os.Getenv("BIU_HOST")
+		biuHost = os.Getenv("BIU_HOST")
+		portsRanges = os.Getenv("BIU_PORTS")
+		tycCookie = os.Getenv("TYC_COOKIE")
 
 	}
 
@@ -225,12 +244,13 @@ func initEnv() {
 func main() {
 	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	flag.StringVar(&ak, "ak", "", "biu api key")
-	flag.StringVar(&biu, "host", "", "biu host url: https://x.x.x.x")
+	flag.StringVar(&biuHost, "host", "", "biu host url: https://x.x.x.x")
 	flag.StringVar(&pnew, "pnew", "", "biu new project name")
 	flag.StringVar(&pid, "pid", "", "biu project id")
 	flag.StringVar(&icp, "icp", "", "备案名称查询域名")
 	flag.StringVar(&ip, "ip", "", "biu search ip")
 	flag.BoolVar(&isSearch, "s", false, "biu 搜索模式")
+	flag.BoolVar(&verbose, "v", false, "输出更多信息")
 	flag.IntVar(&pageSize, "l", 20, "pageSize")
 	flag.Parse()
 	initEnv()
@@ -249,7 +269,7 @@ func main() {
 		}
 
 	} else if icp != "" {
-		icpSearch()
+		icpSearch(1)
 	} else {
 		if pid == "" {
 			if pnew == "" {
