@@ -60,7 +60,7 @@ biu-cli -icp xx公司 -pnew 项目名称
 ```
 
 
- - 配合https://opendata.rapid7.com/sonar.https/使用
+ - 配合 https://opendata.rapid7.com/sonar.https/ 使用
 
 ```shell
 https://stedolan.github.io/jq/download/ 安装jq
@@ -68,7 +68,7 @@ zgrep 'exmaple.com' 2021-04-19-1618794424-https_get_443.json.gz|jq -r '.ip'|biu-
 zgrep 'BeiJing Baidu Netcom Science Technology' 2021-04-19-1618794424-https_get_443.json.gz|jq -r '.ip'|biu-cli -pid 项目ID
 ```
 
- - 配合https://opendata.rapid7.com/sonar.fdns_v2/使用
+ - 配合 https://opendata.rapid7.com/sonar.fdns_v2/ 使用
 ```shell
 zgrep '\.example.com"' 2021-01-30-1611965078-fdns_a.json.gz|jq -r '.name'|biu-cli -pid 项目ID
 zgrep '\.example.com"' 2021-01-30-1611965078-fdns_a.json.gz|jq -r '.value'|biu-cli -pid 项目ID
