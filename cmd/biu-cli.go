@@ -18,6 +18,7 @@ import (
 
 var (
 	isSearch    bool
+	isViewMode  bool
 	tycCookie   string
 	portsRanges = "21-22,80,443,1433,2181,2409,3306,3389,5601,6379,8009,8080,8443,8888,9200,27017"
 	biuHost     string
@@ -29,7 +30,7 @@ var (
 	verbose     bool
 	pageSize    int
 	client      = resty.New()
-	version     = "v0.6"
+	version     = "v0.7"
 )
 
 func biuPrint(header []string, data [][]string) {
@@ -100,6 +101,20 @@ func addTargetToProject(target string) {
 			fmt.Println(fmt.Sprintf("添加成功 %s", target))
 
 		}
+	}
+}
+func viewProjectAssets() {
+	resp, err := biuClient().
+		Get(fmt.Sprintf("%s/api/project?md5=%s", biuHost, pid))
+	if err != nil {
+		fmt.Print(err)
+	}
+	if resp.StatusCode() == 200 {
+		assets := gjson.Get(string(resp.Body()), "result").Get("assets")
+		for _, asset := range assets.Array() {
+			fmt.Println(asset)
+		}
+
 	}
 }
 func listProjects() {
@@ -219,9 +234,9 @@ func initEnv() {
 	if err != nil {
 		if ak != "" && biuHost != "" {
 			var DefaultServerOptions = map[string]string{
-				"BIU_AK":   ak,
-				"BIU_HOST": biuHost,
-				"BIU_PORTS": portsRanges,
+				"BIU_AK":     ak,
+				"BIU_HOST":   biuHost,
+				"BIU_PORTS":  portsRanges,
 				"TYC_COOKIE": tycCookie,
 			}
 			err := godotenv.Write(DefaultServerOptions, envPath)
@@ -250,6 +265,7 @@ func main() {
 	flag.StringVar(&icp, "icp", "", "备案名称查询域名")
 	flag.StringVar(&ip, "ip", "", "biu search ip")
 	flag.BoolVar(&isSearch, "s", false, "biu 搜索模式")
+	flag.BoolVar(&isViewMode, "pv", false, "查看项目资产配置")
 	flag.BoolVar(&verbose, "v", false, "输出更多信息")
 	flag.IntVar(&pageSize, "l", 20, "pageSize")
 	flag.Parse()
@@ -278,9 +294,13 @@ func main() {
 				addProject()
 			}
 		} else {
-			scanner := bufio.NewScanner(os.Stdin)
-			for scanner.Scan() {
-				addTargetToProject(scanner.Text())
+			if isViewMode {
+				viewProjectAssets()
+			} else {
+				scanner := bufio.NewScanner(os.Stdin)
+				for scanner.Scan() {
+					addTargetToProject(scanner.Text())
+				}
 			}
 		}
 	}
