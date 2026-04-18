@@ -1,4 +1,4 @@
-module biu-cli
+module github.com/0xbug/biu-cli
 
 go 1.15
 
