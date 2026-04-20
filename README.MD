@@ -1,3 +1,7 @@
+## SKILL
+```
+npx skills add https://github.com/0xbug/biu-cli --skill biu-cli
+```
 ## 构建
 ```shell
 go mod download
