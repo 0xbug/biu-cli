@@ -1,10 +1,7 @@
 ---
 name: biu-cli
 description: >-
-  Guides use of the biu asset-search CLI: configuring BIU_AK/BIU_HOST, listing and
-  creating projects, querying by IP or CIDR or stdin, JSON output with -json, and
-  attaching targets to projects via -pid. Use when the user mentions biu-cli, BIU
-  API key, asset search, project ID (md5), piping targets, or ~/.biu.env.
+  biuasm 攻击面梳理平台biu-cli使用指南
 ---
 
 # biu-cli
@@ -17,16 +14,14 @@ description: >-
 
 远程安装：`go install github.com/0xbug/biu-cli/cmd/biu-cli@latest`（模块 `github.com/0xbug/biu-cli`），默认可执行文件名为 `biu-cli`。
 
-## 认证与配置
+## 首次认证与配置
 
-1. 在 Biu **个人中心 → 安全设置** 生成 API 密钥。
+1. 在 Biu **个人中心 → 安全设置** https://asm.biu.life/account/setting?tab=security 生成 API 密钥。
 2. 首次初始化（将写入 `~/.biu.env`）：
 
 ```shell
 biu-cli -ak API密钥 -host biu地址(https://x.x.x.x)
 ```
-
-进阶：可通过环境变量覆盖（亦会写入/读取 `~/.biu.env`）：
 
 ```shell
 BIU_AK="API密钥"
@@ -35,7 +30,7 @@ BIU_PORTS="新建项目使用的端口范围"
 ```
 
 - **`BIU_PORTS`**：新建项目（`-pnew`）时提交的默认端口范围字符串；与 CLI 内置默认端口列表一致时可不设置。
-- 配置文件路径：**`~/.biu.env`**（由程序通过 godotenv 加载）。
+- 配置文件路径：**`~/.biu.env`**。
 
 ## 命令行选项速查
 
