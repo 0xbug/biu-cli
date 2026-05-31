@@ -117,9 +117,9 @@ biu-cli -pid 项目ID -pvul -from 2
 列表输出含「漏洞ID」列，或从平台复制 md5 后：
 
 ```shell
-biu-cli -vmd5 99701eb2924f27664559946bcf627874
-biu-cli -vmd5 99701eb2924f27664559946bcf627874 -json
-biu-cli -vmd5 99701eb2924f27664559946bcf627874 -v
+biu-cli -vmd5 漏洞md5
+biu-cli -vmd5 漏洞md5 -json
+biu-cli -vmd5 漏洞md5 -v
 ```
 
 ### 查看插件详情（按漏洞标题）
