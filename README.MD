@@ -36,6 +36,7 @@ biu-cli -json
 biu-cli -ip 1.1.1.1 -json
 biu-cli -ip 1.1.1.1/24 -json
 biu-cli -pid 项目ID -pv -json
+biu-cli -pid 项目ID -pvul -json
 cat ip.txt|biu-cli -s -json
 ```
 
@@ -65,4 +66,21 @@ biu-cli -pnew 项目名称
 ```shell
 cat ip.txt|biu-cli -pid 项目ID
 cat domain.txt|biu-cli -pid 项目ID
+```
+ - 查看项目漏洞列表
+```shell
+biu-cli -pid 项目ID -pvul
+biu-cli -pid 项目ID -pvul -json
+biu-cli -pid 项目ID -pvul -l 50 -v
+biu-cli -pid 项目ID -pvul -from 2
+```
+ - 查看漏洞详情
+```shell
+biu-cli -vmd5 漏洞md5
+biu-cli -vmd5 漏洞md5 -json
+```
+ - 查看插件详情（漏洞标题）
+```shell
+biu-cli -plugin "Sentry 服务端请求伪造漏洞"
+biu-cli -plugin "Sentry 服务端请求伪造漏洞" -json
 ```
